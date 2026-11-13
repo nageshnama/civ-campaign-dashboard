@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>cIV Free-Trial Campaign — KPI Dashboard</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2230;--mut:#667085;--line:#e4e7ec;--a:#2563eb;--w:#b45309}
+@media(prefers-color-scheme:dark){:root{--bg:#10141c;--card:#171c27;--ink:#e8ecf3;--mut:#98a2b3;--line:#2a3140;--a:#6ea0ff;--w:#f5b04c}}
+body{margin:0;font:14px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:20px 28px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:20px}
+.sub{color:var(--mut);margin-top:4px}.banner{background:var(--w);color:#fff;padding:6px 28px;font-weight:600;display:none}
+main{padding:20px 28px;max-width:1200px;margin:auto}section{margin-bottom:28px}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px}
+.k{color:var(--mut);font-size:12px}.v{font-size:26px;font-weight:650}.n{font-size:11px;color:var(--w)}
+.bar{display:grid;grid-template-columns:130px 1fr 44px;gap:8px;align-items:center;margin:4px 0;font-size:12px}
+.bar i{display:block;height:10px;background:var(--a);border-radius:3px}.bar b{text-align:right;font-weight:500}
+svg{width:100%;height:160px}footer{color:var(--mut);padding:0 28px 24px;font-size:12px}
+</style></head><body>
+<div class="banner" id="banner">TEST DATA — not real campaign results</div>
+<header><h1>cIV Free-Trial Campaign — KPI Dashboard</h1><div class="sub" id="meta">Loading…</div></header>
+<main id="m"></main>
+<footer>Aggregates only; no personal prospect data. Open rate is directional (mail-privacy proxies inflate it). Refreshed at least daily.</footer>
+<script>
+const pct=x=>x==null?"—":(x*100).toFixed(1)+"%", num=x=>x==null?"—":x.toLocaleString(), usd=x=>x==null?"—":"$"+x.toFixed(2);
+const tile=(k,v,n)=>`<div class="card"><div class="k">${k}</div><div class="v">${v}</div>${n?`<div class="n">${n}</div>`:""}</div>`;
+const bars=(t,o)=>{const mx=Math.max(1,...Object.values(o));return `<div class="card"><div class="k">${t}</div>`+Object.entries(o).map(([k,v])=>`<div class="bar"><span>${k}</span><i style="width:${v/mx*100}%"></i><b>${num(v)}</b></div>`).join("")+`</div>`};
+const sec=(t,h)=>`<section><h2>${t}</h2>${h}</section>`;
+function trend(rows){if(!rows.length)return"";const keys=[["emails","Emails"],["li","LinkedIn"],["replies","Replies"],["signups","Sign-ups"]],W=600,H=150,mx=Math.max(...rows.map(r=>r.emails));
+const col=["#2563eb","#0f9d8a","#c2410c","#7c3aed"];
+return `<div class="card"><div class="k">Cumulative volume by day · ${keys.map((k,i)=>`<span style="color:${col[i]}">■</span> ${k[1]}`).join(" ")}</div><svg viewBox="0 0 ${W} ${H+10}" preserveAspectRatio="none">`+keys.map((k,i)=>`<polyline fill="none" stroke="${col[i]}" stroke-width="2" points="${rows.map((r,j)=>`${j/(Math.max(1,rows.length-1))*W},${H-r[k[0]]/mx*H}`).join(" ")}"/>`).join("")+`</svg></div>`}
+fetch("data/metrics.json?"+Date.now()).then(r=>r.json()).then(d=>{
+ if(d.source==="test")banner.style.display="block";
+ meta.textContent=`Campaign tag: ${d.campaign_tag} · Source: ${d.source} · Updated ${new Date(d.generated_at).toLocaleString()}`;
+ const L=d.list,A=d.activity,E=d.engagement,C=d.conversion,H=d.health,F=d.efficiency;
+ m.innerHTML=
+ sec("List",`<div class="grid">${tile("Total prospects",num(L.total))}${tile("Email-verified",pct(L.email_verified_pct))}</div><div class="grid" style="margin-top:12px">${bars("By segment",L.by_segment)}${bars("By region",L.by_region)}${bars("By persona",L.by_persona)}${bars("ICP score distribution",L.icp_distribution)}</div>`)+
+ sec("Activity",`<div class="grid">${tile("Emails sent",num(A.emails_sent))}${tile("LinkedIn requests",num(A.li_requests))}${tile("LinkedIn messages",num(A.li_messages))}</div><div class="grid" style="margin-top:12px">${bars("Touches by sequence step",A.touches_by_step)}${trend(d.trend)}</div>`)+
+ sec("Engagement",`<div class="grid">${tile("LinkedIn accept rate",pct(E.li_accept_rate))}${tile("Email open rate",pct(E.email_open_rate),"directional only")}${tile("Reply rate",pct(E.reply_rate))}${tile("Positive-reply rate",pct(E.positive_reply_rate),"of replies")}</div>`)+
+ sec("Conversion",`<div class="grid">${tile("Meetings booked",num(C.meetings))}${tile("Trial sign-ups",num(C.trial_signups))}${tile("Activations",num(C.activations))}${tile("Customer expansions",num(C.expansions))}</div>`)+
+ sec("Health",`<div class="grid">${tile("Bounce rate",pct(H.bounce_rate))}${tile("Opt-out rate",pct(H.optout_rate))}${tile("Spam complaints",num(H.spam_complaints))}</div>`)+
+ sec("Efficiency",`<div class="grid">${tile("LLM spend",usd(F.llm_spend_usd),`of ${usd(F.llm_budget_usd)} budget (${pct(F.llm_spend_usd/F.llm_budget_usd)})`)}${tile("Cost per trial sign-up",usd(F.cost_per_signup_usd))}</div>`);
+}).catch(e=>{meta.textContent="Failed to load data: "+e});
+</script></body></html>
